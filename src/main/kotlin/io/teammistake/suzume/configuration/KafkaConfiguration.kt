@@ -45,7 +45,7 @@ class KafkaConfiguration {
             SaslConfigs.SASL_MECHANISM to "PLAIN",
             CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to "SASL_PLAINTEXT",
             SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "",
-            SaslConfigs.SASL_JAAS_CONFIG to "${PlainLoginModule::class.java.name} required username=\"${username}\" password=\"${password}\""
+            SaslConfigs.SASL_JAAS_CONFIG to "${PlainLoginModule::class.java.name} required username=\"${username}\" password=\"${password}\";"
         ).let(::DefaultKafkaProducerFactory)
     }
 
@@ -62,7 +62,7 @@ class KafkaConfiguration {
             SaslConfigs.SASL_MECHANISM to "PLAIN",
             CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to "SASL_PLAINTEXT",
             SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "",
-            SaslConfigs.SASL_JAAS_CONFIG to "${PlainLoginModule::class.java.name} required username=\"${username}\" password=\"${password}\""
+            SaslConfigs.SASL_JAAS_CONFIG to "${PlainLoginModule::class.java.name} required username=\"${username}\" password=\"${password}\";"
         )
 
         return DefaultKafkaConsumerFactory(props, StringDeserializer(), JsonDeserializer(InferenceResponse::class.java))
