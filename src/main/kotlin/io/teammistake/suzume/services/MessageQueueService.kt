@@ -33,10 +33,10 @@ import kotlin.coroutines.suspendCoroutine
 @Service
 class MessageQueueService {
 
-    @Value(value = "\${kafka.reqTopic}")
+    @Value(value = "#{environment.KAFKA_REQ_TOPIC}")
     lateinit var producerTopic: String;
 
-    @Value(value = "\${kafka.respTopic}")
+    @Value(value = "#{environment.KAFKA_RESP_TOPIC}")
     lateinit var consumerTopic: String;
 
     val correlationMap: MutableMap<String, Request> = ConcurrentHashMap();

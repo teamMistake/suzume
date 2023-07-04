@@ -25,13 +25,13 @@ import org.springframework.kafka.support.serializer.JsonSerializer
 
 @Configuration
 class KafkaConfiguration {
-    @Value(value = "\${kafka.bootstrapAddress}")
+    @Value(value = "#{environment.KAFKA_BOOTSTRAP_ADDRESS}")
     lateinit var bootstrapAddress: String;
 
-    @Value(value = "\${kafka.username}")
+    @Value(value = "#{environment.KAFKA_USERNAME}")
     lateinit var username: String;
 
-    @Value(value = "\${kafka.password}")
+    @Value(value = "#{environment.KAFKA_PASSWORD}")
     lateinit var password: String;
 
     @Bean
