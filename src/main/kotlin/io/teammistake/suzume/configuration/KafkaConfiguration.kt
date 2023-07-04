@@ -10,6 +10,7 @@ import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.common.config.SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG
 import org.apache.kafka.common.security.plain.PlainLoginModule
+import org.apache.kafka.common.security.scram.ScramLoginModule
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.springframework.beans.factory.annotation.Value
@@ -42,10 +43,10 @@ class KafkaConfiguration {
             BOOTSTRAP_SERVERS_CONFIG to bootstrapAddress,
             KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
             VALUE_SERIALIZER_CLASS_CONFIG to JsonSerializer::class.java,
-            SaslConfigs.SASL_MECHANISM to "PLAIN",
+            SaslConfigs.SASL_MECHANISM to "SCRAM-SHA-512",
             CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to "SASL_PLAINTEXT",
             SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "",
-            SaslConfigs.SASL_JAAS_CONFIG to "${PlainLoginModule::class.java.name} required username=\"${username}\" password=\"${password}\";"
+            SaslConfigs.SASL_JAAS_CONFIG to "${ScramLoginModule::class.java.name} required username=\"${username}\" password=\"${password}\";"
         ).let(::DefaultKafkaProducerFactory)
     }
 
@@ -59,10 +60,10 @@ class KafkaConfiguration {
             BOOTSTRAP_SERVERS_CONFIG to bootstrapAddress,
             KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
             VALUE_DESERIALIZER_CLASS_CONFIG to JsonDeserializer::class.java,
-            SaslConfigs.SASL_MECHANISM to "PLAIN",
+            SaslConfigs.SASL_MECHANISM to "SCRAM-SHA-512",
             CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to "SASL_PLAINTEXT",
             SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "",
-            SaslConfigs.SASL_JAAS_CONFIG to "${PlainLoginModule::class.java.name} required username=\"${username}\" password=\"${password}\";"
+            SaslConfigs.SASL_JAAS_CONFIG to "${ScramLoginModule::class.java.name} required username=\"${username}\" password=\"${password}\";"
         )
 
         return DefaultKafkaConsumerFactory(props, StringDeserializer(), JsonDeserializer(InferenceResponse::class.java))
