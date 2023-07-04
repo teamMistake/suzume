@@ -17,7 +17,6 @@ class ExceptionHandler {
     @ExceptionHandler(IllegalArgumentException::class, MissingKotlinParameterException::class, DataIntegrityViolationException::class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     fun onIllegalArgument(e: Exception): APIError {
-        e.printStackTrace()
         return APIError(e.message);
     }
 
@@ -32,6 +31,10 @@ class ExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     fun onWeirdResponse(e: InferenceServerResponseException): APIError {
         e.printStackTrace()
+        println(e.request)
+        println(e.resp.toString())
+        println("----------------------------------------------")
+
         return APIError(e.message, e.reqId, e.request, e.resp)
     }
 

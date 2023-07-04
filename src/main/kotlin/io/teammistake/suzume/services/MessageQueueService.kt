@@ -108,7 +108,6 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
             if (value != null)
                 sink.next(value);
             else sink.error(InferenceServerResponseException(req.req, req.reqId, resp))
-            // TODO: better exception
             if (resp.value().eos) {
                 sink.complete()
                 correlationMap.remove(reqId)
