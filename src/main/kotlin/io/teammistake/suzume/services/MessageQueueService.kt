@@ -47,8 +47,14 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
     @Value(value = "#{environment.FIRST_TIMEOUT}")
     lateinit var timeout: Integer;
 
+    @Value(value = "#{environment.MODELS}")
+    lateinit var models: String;
+
     val correlationMap: MutableMap<String, Request> = ConcurrentHashMap();
 
+    val model by lazy {
+        models.split(",").toSet()
+    }
 
     data class Request(
         val req: APIInferenceRequest,
@@ -60,6 +66,11 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
     @Autowired lateinit var kafkaTemplate: KafkaTemplate<String, InferenceRequest>;
     suspend fun request(req: APIInferenceRequest): Pair<Flux<String>, APIResponseHeader> {
         val reqId = UUID.randomUUID().toString();
+
+        if (!model.contains(req.model)) {
+            throw IllegalArgumentException("Invalid Model: ${req.model}, must be one of $models")
+        }
+
 
         val flux = Flux.create {
             correlationMap[reqId] = Request(
