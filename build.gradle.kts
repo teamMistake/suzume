@@ -5,6 +5,7 @@ plugins {
 	id("io.spring.dependency-management") version "1.1.0"
 	kotlin("jvm") version "1.8.22"
 	kotlin("plugin.spring") version "1.8.22"
+	id("com.palantir.docker") version "0.35.0"
 }
 
 group = "io.teammistake"
@@ -19,6 +20,14 @@ repositories {
 	maven { url = uri("https://repo.spring.io/milestone") }
 	maven { url = uri("https://repo.spring.io/snapshot") }
 }
+
+docker {
+	name = "${project.name}:${project.version}"
+	files(tasks.bootJar.get().outputs)
+	tag("ghcr", "ghcr.io/teammistake/suzume:${project.version}")
+	setDockerfile( file("Dockerfile") )
+}
+
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-actuator")

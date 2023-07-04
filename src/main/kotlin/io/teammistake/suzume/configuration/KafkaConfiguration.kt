@@ -7,6 +7,8 @@ import org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_C
 import org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG
 import org.apache.kafka.clients.producer.ProducerConfig.*
 import org.apache.kafka.common.config.SaslConfigs
+import org.apache.kafka.common.config.SslConfigs
+import org.apache.kafka.common.config.SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG
 import org.apache.kafka.common.security.plain.PlainLoginModule
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
@@ -20,28 +22,29 @@ import org.springframework.kafka.support.serializer.JsonDeserializer
 import org.springframework.kafka.support.serializer.JsonSerializer
 
 
-@EnableKafka
+//@EnableKafka
 
 
 @Configuration
 class KafkaConfiguration {
-    @Value(value = "#{environment.KAFKA_BOOTSTRAP_ADDRESS}")
+    @Value(value = "#{environment.KAFKA_BOOTSTRAP_ADDRESS ?: ''}")
     lateinit var bootstrapAddress: String;
 
-    @Value(value = "#{environment.KAFKA_USERNAME}")
+    @Value(value = "#{environment.KAFKA_USERNAME ?: ''}")
     lateinit var username: String;
 
-    @Value(value = "#{environment.KAFKA_PASSWORD}")
+    @Value(value = "#{environment.KAFKA_PASSWORD ?: ''}")
     lateinit var password: String;
 
     @Bean
     fun requestProducerFactory(): ProducerFactory<String, InferenceRequest> {
-        return mapOf<String, Any>(
+        return mapOf<String, Any?>(
             BOOTSTRAP_SERVERS_CONFIG to bootstrapAddress,
             KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
             VALUE_SERIALIZER_CLASS_CONFIG to JsonSerializer::class.java,
             SaslConfigs.SASL_MECHANISM to "PLAIN",
             CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to "SASL_PLAINTEXT",
+            SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "",
             SaslConfigs.SASL_JAAS_CONFIG to "${PlainLoginModule::class.java.name} required username=\"${username}\" password=\"${password}\""
         ).let(::DefaultKafkaProducerFactory)
     }
@@ -52,12 +55,13 @@ class KafkaConfiguration {
     @Bean
     fun responseConsumerFactory(): ConsumerFactory<String, InferenceResponse> {
 
-        val props =  mapOf<String, Any>(
+        val props =  mapOf<String, Any?>(
             BOOTSTRAP_SERVERS_CONFIG to bootstrapAddress,
             KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
             VALUE_DESERIALIZER_CLASS_CONFIG to JsonDeserializer::class.java,
             SaslConfigs.SASL_MECHANISM to "PLAIN",
             CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to "SASL_PLAINTEXT",
+            SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "",
             SaslConfigs.SASL_JAAS_CONFIG to "${PlainLoginModule::class.java.name} required username=\"${username}\" password=\"${password}\""
         )
 

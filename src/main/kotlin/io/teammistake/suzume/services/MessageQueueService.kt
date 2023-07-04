@@ -31,12 +31,12 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.suspendCoroutine
 
 @Service
-class MessageQueueService {
+class MessageQueueService: MessageListener<String, InferenceResponse> {
 
-    @Value(value = "#{environment.KAFKA_REQ_TOPIC}")
+    @Value(value = "#{environment.KAFKA_REQ_TOPIC ?: ''}")
     lateinit var producerTopic: String;
 
-    @Value(value = "#{environment.KAFKA_RESP_TOPIC}")
+    @Value(value = "#{environment.KAFKA_RESP_TOPIC ?: ''}")
     lateinit var consumerTopic: String;
 
     val correlationMap: MutableMap<String, Request> = ConcurrentHashMap();
@@ -74,7 +74,7 @@ class MessageQueueService {
         return Pair(flux, APIResponseHeader(reqId, req.model));
     }
 
-    fun response(resp: ConsumerRecord<String, InferenceResponse>) {
+    override fun onMessage(resp: ConsumerRecord<String, InferenceResponse>) {
         val reqId = resp.headers().lastHeader("req_id").value().toString(Charset.defaultCharset())
         val req = correlationMap[reqId];
         if (req != null) {
@@ -101,7 +101,7 @@ class MessageQueueService {
         );
         val result: KafkaMessageListenerContainer<String, InferenceResponse> = KafkaMessageListenerContainer(consumerFactory,
             cProps);
-        result.setupMessageListener(this::response as MessageListener<String, InferenceResponse>);
+        result.setupMessageListener(this);
         return result;
     }
 
