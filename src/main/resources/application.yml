@@ -1,0 +1,21 @@
+
+spring:
+  application:
+    name: suzume
+
+info:
+  application:
+    name: Suzume
+
+management:
+  info:
+    env:
+      enabled: false
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+        exclude: "env"
