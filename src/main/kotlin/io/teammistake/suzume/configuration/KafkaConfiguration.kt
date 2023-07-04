@@ -3,6 +3,7 @@ package io.teammistake.suzume.configuration
 import io.teammistake.suzume.data.InferenceRequest
 import io.teammistake.suzume.data.InferenceResponse
 import org.apache.kafka.clients.CommonClientConfigs
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG
 import org.apache.kafka.clients.producer.ProducerConfig.*
@@ -37,6 +38,11 @@ class KafkaConfiguration {
     @Value(value = "#{environment.KAFKA_PASSWORD ?: ''}")
     lateinit var password: String;
 
+    @Value(value = "#{environment.NODE_ID ?: ''}")
+    lateinit var nodeId: String;
+
+
+
     @Bean
     fun requestProducerFactory(): ProducerFactory<String, InferenceRequest> {
         return mapOf<String, Any?>(
@@ -55,12 +61,12 @@ class KafkaConfiguration {
 
     @Bean
     fun responseConsumerFactory(): ConsumerFactory<String, InferenceResponse> {
-
         val props =  mapOf<String, Any?>(
             BOOTSTRAP_SERVERS_CONFIG to bootstrapAddress,
             KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
             VALUE_DESERIALIZER_CLASS_CONFIG to JsonDeserializer::class.java,
             SaslConfigs.SASL_MECHANISM to "SCRAM-SHA-512",
+            ConsumerConfig.GROUP_ID_CONFIG to "gateway-$nodeId",
             CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to "SASL_PLAINTEXT",
             SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "",
             SaslConfigs.SASL_JAAS_CONFIG to "${ScramLoginModule::class.java.name} required username=\"${username}\" password=\"${password}\";"

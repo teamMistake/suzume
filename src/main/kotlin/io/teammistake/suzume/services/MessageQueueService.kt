@@ -4,6 +4,8 @@ import io.teammistake.suzume.data.APIInferenceRequest
 import io.teammistake.suzume.data.APIResponseHeader
 import io.teammistake.suzume.data.InferenceRequest
 import io.teammistake.suzume.data.InferenceResponse
+import io.teammistake.suzume.exception.InferenceServerResponseException
+import io.teammistake.suzume.exception.RequestTimeoutException
 import kotlinx.coroutines.future.asDeferred
 import kotlinx.coroutines.future.await
 import org.apache.kafka.clients.admin.NewTopic
@@ -25,9 +27,12 @@ import org.springframework.stereotype.Service
 import org.springframework.util.concurrent.ListenableFutureCallback
 import reactor.core.publisher.Flux
 import reactor.core.publisher.FluxSink
+import reactor.core.publisher.Mono
 import java.nio.charset.Charset
+import java.time.Duration
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeoutException
 import kotlin.coroutines.suspendCoroutine
 
 @Service
@@ -39,6 +44,9 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
     @Value(value = "#{environment.KAFKA_RESP_TOPIC ?: ''}")
     lateinit var consumerTopic: String;
 
+    @Value(value = "#{environment.FIRST_TIMEOUT}")
+    lateinit var timeout: Integer;
+
     val correlationMap: MutableMap<String, Request> = ConcurrentHashMap();
 
 
@@ -46,6 +54,7 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
         val req: APIInferenceRequest,
         val reqId: String,
         val sink: FluxSink<String>,
+        @Volatile var received: Boolean = false
     );
 
     @Autowired lateinit var kafkaTemplate: KafkaTemplate<String, InferenceRequest>;
@@ -71,13 +80,26 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
             }
         ).await()
 
-        return Pair(flux, APIResponseHeader(reqId, req.model));
+        val withTimeout = flux
+            .timeout(Mono.just(0L).delayElement(Duration.ofMillis(timeout.toLong())))
+            .doOnError {
+                if (it is TimeoutException) {
+                    correlationMap.remove(reqId)
+                }
+            }
+            .onErrorResume({t -> t is TimeoutException}, {_ -> Mono.error(RequestTimeoutException(req, reqId))})
+            .doFinally {
+                correlationMap.remove(reqId)
+            }
+
+        return Pair(withTimeout, APIResponseHeader(reqId, req.model));
     }
 
     override fun onMessage(resp: ConsumerRecord<String, InferenceResponse>) {
         val reqId = resp.headers().lastHeader("req_id").value().toString(Charset.defaultCharset())
         val req = correlationMap[reqId];
         if (req != null) {
+            req.received = true;
             val sink = req.sink;
 
             var value = resp.value().respPartial;
@@ -85,7 +107,7 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
 
             if (value != null)
                 sink.next(value);
-            else sink.error(IllegalArgumentException("Inference server returned $resp for $req / ID: ${req.reqId}"))
+            else sink.error(InferenceServerResponseException(req.req, req.reqId, resp))
             // TODO: better exception
             if (resp.value().eos) {
                 sink.complete()
