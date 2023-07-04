@@ -9,6 +9,8 @@ data class APIError(
     val error: String?,
     @JsonInclude(JsonInclude.Include.NON_NULL)
     val reqId: String? = null,
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     val request: APIInferenceRequest? = null,
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     val data: Any? = null
 )
