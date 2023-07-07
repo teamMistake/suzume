@@ -1,5 +1,6 @@
 package io.teammistake.suzume.repository
 
+import io.teammistake.suzume.data.ContextPart
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
@@ -11,7 +12,7 @@ import java.time.Instant
 class AIGeneration(
     @Id val id: String,
     val req: String,
-    val context: String,
+    val context: List<ContextPart>,
     val model: String,
     val maxToken: Int,
     val stream: Boolean,
