@@ -1,13 +1,11 @@
 package io.teammistake.suzume.services
 
-import io.teammistake.suzume.data.APIInferenceRequest
-import io.teammistake.suzume.data.APIResponseHeader
-import io.teammistake.suzume.data.InferenceRequest
-import io.teammistake.suzume.data.InferenceResponse
+import io.teammistake.suzume.data.*
 import io.teammistake.suzume.exception.InferenceServerResponseException
 import io.teammistake.suzume.exception.RequestTimeoutException
 import kotlinx.coroutines.future.asDeferred
 import kotlinx.coroutines.future.await
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -59,12 +57,13 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
     data class Request(
         val req: APIInferenceRequest,
         val reqId: String,
-        val sink: FluxSink<String>,
+        val sink: FluxSink<InferenceResponse>,
         @Volatile var received: Boolean = false
     );
 
     @Autowired lateinit var kafkaTemplate: KafkaTemplate<String, InferenceRequest>;
-    suspend fun request(req: APIInferenceRequest): Pair<Flux<String>, APIResponseHeader> {
+    @Autowired lateinit var aiGenerationRepository: AIGenerationRepository;
+    suspend fun request(req: APIInferenceRequest, uid: String?): Pair<Flux<InferenceResponse>, APIResponseHeader> {
         require(req.maxToken <= 0) {"Max token must be posistive: ${req.maxToken}"}
 
 
@@ -73,6 +72,19 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
         if (!model.contains(req.model)) {
             throw IllegalArgumentException("Invalid Model: ${req.model}, must be one of $models")
         }
+
+        var aiGeneration = AIGeneration(
+            id = reqId,
+            req = req.req,
+            context = req.context,
+            model = req.model,
+            maxToken = req.maxToken,
+            stream =  req.stream,
+            uid= uid
+        );
+        aiGeneration = aiGenerationRepository.save(aiGeneration).awaitSingleOrNull()!!;
+
+
 
 
         val flux = Flux.create {
@@ -104,7 +116,21 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
             .onErrorResume({t -> t is TimeoutException}, {_ -> Mono.error(RequestTimeoutException(req, reqId))})
             .doFinally {
                 correlationMap.remove(reqId)
-            }
+            }.share()
+        val start = System.currentTimeMillis();
+
+
+        withTimeout
+            .onErrorResume { Mono.just(InferenceResponse("", null, true, it.message)) }
+            .reduce { s: InferenceResponse, s1: InferenceResponse -> InferenceResponse(s.respPartial + s1.respPartial, s1.respFull ?: s.respFull, s1.eos, s1.error) }
+            .flatMap {
+                aiGeneration.resp = it.respPartial
+                aiGeneration.error = it.error
+                aiGeneration.respMillis = (System.currentTimeMillis() - start).toInt()
+                aiGenerationRepository.save(
+                    aiGeneration
+                );
+            }.subscribe()
 
         return Pair(withTimeout, APIResponseHeader(reqId, req.model));
     }
@@ -119,8 +145,7 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
             var value = resp.value().respPartial;
             if (value == null) value = resp.value().respFull;
 
-            if (value != null)
-                sink.next(value);
+            if (value != null) sink.next(resp.value());
             else sink.error(InferenceServerResponseException(req.req, req.reqId, resp))
             if (resp.value().eos) {
                 sink.complete()

@@ -10,7 +10,8 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 data class InferenceResponse(
     val respPartial: String?,
     val respFull: String?,
-    val eos: Boolean
+    val eos: Boolean,
+    val error: String? = null
 )
 
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
