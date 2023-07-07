@@ -7,8 +7,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.mongodb.config.AbstractReactiveMongoConfiguration
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
-import org.springframework.data.mongodb.repository.config.EnableMongoRepositories
-import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRepositories
 
 
 @Configuration
@@ -21,7 +19,7 @@ class MongoConfiguration: AbstractReactiveMongoConfiguration() {
     lateinit var mongoDatabaseName: String;
 
     @Bean
-    fun mongoClient(): MongoClient {
+    override fun reactiveMongoClient(): MongoClient {
         return MongoClients
             .create(mongoUrl)
     }

@@ -21,4 +21,6 @@ class AIGeneration(
     var error: String? = null,
     var respMillis: Int = -1,
     var resp: String? = null,
+    var feedbackScore: Double? = null,
+    var feedback: Boolean = false
 )

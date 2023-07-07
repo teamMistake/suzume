@@ -7,6 +7,7 @@ import io.teammistake.suzume.repository.AIGeneration
 import io.teammistake.suzume.repository.AIGenerationRepository
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.reactor.mono
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.springframework.beans.factory.annotation.Autowired
@@ -58,8 +59,9 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
         @Volatile var received: Boolean = false
     );
 
+    @Autowired lateinit var storageService: StorageService;
+
     @Autowired lateinit var kafkaTemplate: KafkaTemplate<String, InferenceRequest>;
-    @Autowired lateinit var aiGenerationRepository: AIGenerationRepository;
     suspend fun request(req: APIInferenceRequest, uid: String?): Pair<Flux<InferenceResponse>, APIResponseHeader> {
         require(req.maxToken > 0) {"Max token must be posistive: ${req.maxToken}"}
 
@@ -70,18 +72,7 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
             throw IllegalArgumentException("Invalid Model: ${req.model}, must be one of $models")
         }
 
-        var aiGeneration = AIGeneration(
-            id = reqId,
-            req = req.req,
-            context = req.context,
-            model = req.model,
-            maxToken = req.maxToken,
-            stream =  req.stream,
-            uid= uid,
-            timestamp = Instant.now(),
-            response = false
-        );
-        aiGeneration = aiGenerationRepository.save(aiGeneration).awaitSingleOrNull()!!;
+        storageService.createNewRequest(reqId, req, uid)
 
 
 
@@ -123,13 +114,20 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
             .onErrorResume { Mono.just(InferenceResponse("", null, true, it.message)) }
             .reduce { s: InferenceResponse, s1: InferenceResponse -> InferenceResponse(s.respPartial + s1.respPartial, s1.respFull ?: s.respFull, s1.eos, s1.error) }
             .flatMap {
-                aiGeneration.resp = it.respPartial
-                aiGeneration.error = it.error
-                aiGeneration.response = true;
-                aiGeneration.respMillis = (System.currentTimeMillis() - start).toInt()
-                aiGenerationRepository.save(
-                    aiGeneration
-                );
+                mono {
+                    if (it.error != null)
+                        storageService.error(
+                            reqId = reqId,
+                            elapsedTime = (System.currentTimeMillis() - start).toInt(),
+                            error = it.error,
+                            resp = it.respFull
+                        )
+                    else
+                        storageService.editResponse(
+                            reqId = reqId,
+                            elapsedTime = (System.currentTimeMillis() - start).toInt(),
+                            resp = it.respFull);
+                }
             }.subscribe()
 
         return Pair(withTimeout, APIResponseHeader(reqId, req.model));
