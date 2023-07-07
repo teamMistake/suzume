@@ -3,26 +3,23 @@ package io.teammistake.suzume.services
 import io.teammistake.suzume.data.*
 import io.teammistake.suzume.exception.InferenceServerResponseException
 import io.teammistake.suzume.exception.RequestTimeoutException
-import kotlinx.coroutines.future.asDeferred
+import io.teammistake.suzume.repository.AIGeneration
+import io.teammistake.suzume.repository.AIGenerationRepository
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.reactor.awaitSingleOrNull
-import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
-import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.core.ConsumerFactory
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.kafka.listener.ContainerProperties
 import org.springframework.kafka.listener.KafkaMessageListenerContainer
 import org.springframework.kafka.listener.MessageListener
 import org.springframework.kafka.listener.MessageListenerContainer
-import org.springframework.kafka.support.SendResult
 import org.springframework.kafka.support.TopicPartitionOffset
 import org.springframework.stereotype.Service
-import org.springframework.util.concurrent.ListenableFutureCallback
 import reactor.core.publisher.Flux
 import reactor.core.publisher.FluxSink
 import reactor.core.publisher.Mono
@@ -32,7 +29,6 @@ import java.time.Instant
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeoutException
-import kotlin.coroutines.suspendCoroutine
 
 @Service
 class MessageQueueService: MessageListener<String, InferenceResponse> {

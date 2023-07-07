@@ -1,4 +1,4 @@
-package io.teammistake.suzume.data
+package io.teammistake.suzume.repository
 
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.annotation.Id
@@ -21,6 +21,3 @@ class AIGeneration(
     var respMillis: Int = -1,
     var resp: String? = null,
 )
-
-@Repository
-interface AIGenerationRepository: ReactiveMongoRepository<AIGeneration, String>;
