@@ -28,8 +28,7 @@ class APIController {
         if (request.stream) throw IllegalArgumentException("Invalid Accept Header, should be $APPLICATION_JSON_VALUE")
 
         val pair = messageQueueService.request(request, uid);
-        val resp = pair.first.reduce { s: String, s1: String -> s+s1 }
-            .awaitSingleOrNull();
-        return APIResponse(pair.second.reqId, pair.second.model, resp);
+        val resp = pair.first.last().awaitSingleOrNull();
+        return APIResponse(pair.second.reqId, pair.second.model, resp?.respFull);
     }
 }
