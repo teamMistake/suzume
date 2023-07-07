@@ -28,6 +28,7 @@ import reactor.core.publisher.FluxSink
 import reactor.core.publisher.Mono
 import java.nio.charset.Charset
 import java.time.Duration
+import java.time.Instant
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeoutException
@@ -80,7 +81,8 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
             model = req.model,
             maxToken = req.maxToken,
             stream =  req.stream,
-            uid= uid
+            uid= uid,
+            timestamp = Instant.now()
         );
         aiGeneration = aiGenerationRepository.save(aiGeneration).awaitSingleOrNull()!!;
 
