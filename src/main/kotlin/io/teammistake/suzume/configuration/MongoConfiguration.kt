@@ -17,8 +17,8 @@ class MongoConfiguration: AbstractReactiveMongoConfiguration() {
     @Value("#{environment.MONGO_URL}")
     lateinit var mongoUrl: String;
 
-    @Value("#{environment.MONG_DATABASE_NAME}")
-    lateinit var databaseName: String;
+    @Value("#{environment.MONGO_DATABASE_NAME}")
+    lateinit var mongoDatabaseName: String;
 
     @Bean
     fun mongoClient(): MongoClient {
@@ -27,12 +27,12 @@ class MongoConfiguration: AbstractReactiveMongoConfiguration() {
     }
 
     override fun getDatabaseName(): String {
-        return databaseName
+        return mongoDatabaseName
     }
 
 
     @Bean
     fun reactiveMongoTemplate(mongoClient: MongoClient): ReactiveMongoTemplate? {
-        return ReactiveMongoTemplate(mongoClient, databaseName)
+        return ReactiveMongoTemplate(mongoClient, mongoDatabaseName)
     }
 }
