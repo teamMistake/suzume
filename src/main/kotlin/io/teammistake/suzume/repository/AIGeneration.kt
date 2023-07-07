@@ -17,6 +17,7 @@ class AIGeneration(
     val stream: Boolean,
     val uid: String?,
     val timestamp: Instant,
+    var response: Boolean,
     var error: String? = null,
     var respMillis: Int = -1,
     var resp: String? = null,

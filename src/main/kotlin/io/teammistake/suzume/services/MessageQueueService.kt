@@ -78,7 +78,8 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
             maxToken = req.maxToken,
             stream =  req.stream,
             uid= uid,
-            timestamp = Instant.now()
+            timestamp = Instant.now(),
+            response = false
         );
         aiGeneration = aiGenerationRepository.save(aiGeneration).awaitSingleOrNull()!!;
 
@@ -124,6 +125,7 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
             .flatMap {
                 aiGeneration.resp = it.respPartial
                 aiGeneration.error = it.error
+                aiGeneration.response = true;
                 aiGeneration.respMillis = (System.currentTimeMillis() - start).toInt()
                 aiGenerationRepository.save(
                     aiGeneration
