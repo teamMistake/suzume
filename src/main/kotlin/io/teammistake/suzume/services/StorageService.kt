@@ -30,28 +30,28 @@ class StorageService {
         return aiGenerationRepository.save(aiGeneration).awaitSingleOrNull()!!;
     }
 
-    suspend fun editResponse(reqId: String, elapsedTime: Int, resp: String?) {
+    suspend fun editResponse(reqId: String, elapsedTime: Int, resp: String?): AIGeneration? {
         val aiGeneration = aiGenerationRepository.findById(reqId).awaitSingleOrNull() ?: throw NotFoundException("$reqId not found")
         aiGeneration.resp = resp
         aiGeneration.response = true;
         aiGeneration.respMillis = elapsedTime.toInt()
-        aiGenerationRepository.save(aiGeneration);
+        return aiGenerationRepository.save(aiGeneration).awaitSingleOrNull()
 
     }
 
-    suspend fun error(reqId: String, elapsedTime: Int, error: String, resp: String?) {
+    suspend fun error(reqId: String, elapsedTime: Int, error: String, resp: String?) : AIGeneration? {
         val aiGeneration = aiGenerationRepository.findById(reqId).awaitSingleOrNull() ?: throw NotFoundException("$reqId not found")
         aiGeneration.resp = resp
         aiGeneration.response = false;
         aiGeneration.error = error;
         aiGeneration.respMillis = elapsedTime.toInt()
-        aiGenerationRepository.save(aiGeneration);
+        return aiGenerationRepository.save(aiGeneration).awaitSingleOrNull()
     }
 
-    suspend fun feedback(reqId: String, score: Double) {
+    suspend fun feedback(reqId: String, score: Double): AIGeneration? {
         val aiGeneration = aiGenerationRepository.findById(reqId).awaitSingleOrNull() ?: throw NotFoundException("$reqId not found")
         aiGeneration.feedback = true
         aiGeneration.feedbackScore = score
-        aiGenerationRepository.save(aiGeneration)
+        return aiGenerationRepository.save(aiGeneration).awaitSingleOrNull()
     }
 }
