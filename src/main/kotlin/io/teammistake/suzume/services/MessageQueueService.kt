@@ -61,7 +61,7 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
     @Autowired lateinit var kafkaTemplate: KafkaTemplate<String, InferenceRequest>;
     @Autowired lateinit var aiGenerationRepository: AIGenerationRepository;
     suspend fun request(req: APIInferenceRequest, uid: String?): Pair<Flux<InferenceResponse>, APIResponseHeader> {
-        require(req.maxToken <= 0) {"Max token must be posistive: ${req.maxToken}"}
+        require(req.maxToken > 0) {"Max token must be posistive: ${req.maxToken}"}
 
 
         val reqId = UUID.randomUUID().toString();
