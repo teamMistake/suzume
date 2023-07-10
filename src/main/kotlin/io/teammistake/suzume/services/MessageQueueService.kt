@@ -64,7 +64,8 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
     @Autowired lateinit var kafkaTemplate: KafkaTemplate<String, InferenceRequest>;
     suspend fun request(req: APIInferenceRequest, uid: String?): Pair<Flux<InferenceResponse>, APIResponseHeader> {
         require(req.maxToken > 0) {"Max token must be posistive: ${req.maxToken}"}
-
+        require( 0 < req.temperature && req.temperature <= 1) {"Temperature must be in (0, 1]"}
+        require(req.topK > 0) {"Top k must be positive"}
 
         val reqId = UUID.randomUUID().toString();
 

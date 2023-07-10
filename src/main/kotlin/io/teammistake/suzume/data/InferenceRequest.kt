@@ -29,6 +29,8 @@ data class APIInferenceRequest(
     val context: List<ContextPart>,
     val stream: Boolean,
     val maxToken: Int,
-    val model: String
+    val model: String,
+    val temperature: Double = 0.8,
+    val topK: Int = 15
 );
 
