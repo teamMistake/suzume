@@ -1,5 +1,6 @@
 package io.teammistake.suzume.repository
 
+import io.teammistake.suzume.data.APIInferenceRequest
 import io.teammistake.suzume.data.ContextPart
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.annotation.Id
@@ -11,11 +12,7 @@ import java.time.Instant
 @Document(collection = "ai-generation")
 class AIGeneration(
     @Id val id: String,
-    val req: String,
-    val context: List<ContextPart>,
-    val model: String,
-    val maxToken: Int,
-    val stream: Boolean,
+    val request: APIInferenceRequest,
     val uid: String?,
     val timestamp: Instant,
     var response: Boolean,

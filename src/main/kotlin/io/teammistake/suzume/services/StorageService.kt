@@ -18,11 +18,7 @@ class StorageService {
     suspend fun createNewRequest(reqId: String, req: APIInferenceRequest, uid: String?): AIGeneration {
         var aiGeneration = AIGeneration(
             id = reqId,
-            req = req.req,
-            context = req.context,
-            model = req.model,
-            maxToken = req.maxToken,
-            stream =  req.stream,
+            request = req,
             uid= uid,
             timestamp = Instant.now(),
             response = false
