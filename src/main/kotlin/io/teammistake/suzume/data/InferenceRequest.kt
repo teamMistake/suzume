@@ -10,7 +10,9 @@ data class InferenceRequest(
     val req: String,
     val context: List<ContextPart>,
     val stream: Boolean,
-    val maxToken: Int
+    val maxToken: Int,
+    val temperature: Double,
+    val topK: Int
 );
 
 data class ContextPart (
