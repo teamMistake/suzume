@@ -1,8 +1,11 @@
 package io.teammistake.suzume.controllers
 
+import io.teammistake.suzume.data.APIError
 import io.teammistake.suzume.data.APIInferenceRequest
 import io.teammistake.suzume.data.APIResponse
 import io.teammistake.suzume.data.FeedbackRequest
+import io.teammistake.suzume.exception.InferenceServerResponseException
+import io.teammistake.suzume.exception.RequestTimeoutException
 import io.teammistake.suzume.services.MessageQueueService
 import io.teammistake.suzume.services.StorageService
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.cast
 
 @RestController
 class APIController {
@@ -26,7 +30,22 @@ class APIController {
     suspend fun generateResponse(@RequestBody request: APIInferenceRequest, @RequestHeader("User-ID") uid: String?): Flux<Any> {
         if (!request.stream) throw IllegalArgumentException("Invalid Accept Header, should be either $APPLICATION_NDJSON_VALUE or $TEXT_EVENT_STREAM_VALUE")
         val pair = messageQueueService.request(request, uid)
-        return Flux.concat(Mono.just(pair.second), pair.first)
+        return Flux.concat(Mono.just(pair.second), pair.first
+            .cast(Any::class.java)
+            .onErrorResume({t -> t is RequestTimeoutException}, {e ->
+                e as RequestTimeoutException;
+                e.printStackTrace()
+                Mono.just(APIError(e.message, e.reqId, e.request))
+            })
+            .onErrorResume({t -> t is InferenceServerResponseException}, {e ->
+                e as InferenceServerResponseException;
+                e.printStackTrace()
+                println(e.request)
+                println(e.resp.toString())
+                println("----------------------------------------------")
+
+                Mono.just(APIError(e.message, e.reqId, e.request, e.resp))
+            }))
     }
 
     @PostMapping("/generate", produces = [ APPLICATION_JSON_VALUE], consumes = [APPLICATION_JSON_VALUE])
