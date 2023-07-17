@@ -13,4 +13,4 @@ data class APIError(
     val request: APIInferenceRequest? = null,
     @JsonInclude(JsonInclude.Include.NON_NULL)
     val data: Any? = null
-)
+): SuzumeResponse()

@@ -14,8 +14,15 @@ data class InferenceResponse(
     val respFull: String?,
     val eos: Boolean,
     val error: String? = null
-): SuzumeResponse()
+)
 
+@JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
+data class InferenceResponse2(
+    val respPartial: String?,
+    val respFull: String?,
+    val eos: Boolean,
+    val error: String? = null
+): SuzumeResponse()
 @JsonNaming(value = PropertyNamingStrategies.SnakeCaseStrategy::class)
 data class APIResponse(
     val reqId: String,
@@ -28,9 +35,10 @@ data class APIResponseHeader(
     val reqId: String,
     val model: String
 ): SuzumeResponse()
-@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes(
     JsonSubTypes.Type(name="header", value=APIResponseHeader::class),
-    JsonSubTypes.Type(name="response", value=InferenceResponse::class)
+    JsonSubTypes.Type(name="response", value=InferenceResponse::class),
+    JsonSubTypes.Type(name="error", value=APIError::class)
 )
 open class SuzumeResponse;

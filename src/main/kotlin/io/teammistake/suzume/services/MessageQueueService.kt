@@ -55,17 +55,18 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
     data class Request(
         val req: APIInferenceRequest,
         val reqId: String,
-        val sink: FluxSink<InferenceResponse>,
+        val sink: FluxSink<InferenceResponse2>,
         @Volatile var received: Boolean = false
     );
 
     @Autowired lateinit var storageService: StorageService;
 
     @Autowired lateinit var kafkaTemplate: KafkaTemplate<String, InferenceRequest>;
-    suspend fun request(req: APIInferenceRequest, uid: String?): Pair<Flux<InferenceResponse>, APIResponseHeader> {
+    suspend fun request(req: APIInferenceRequest, uid: String?): Pair<Flux<InferenceResponse2>, APIResponseHeader> {
         require(req.maxToken > 0) {"Max token must be posistive: ${req.maxToken}"}
         require( 0 < req.temperature && req.temperature <= 1) {"Temperature must be in (0, 1]"}
         require(req.topK > 0) {"Top k must be positive"}
+        require(!req.req.isEmpty()) {"Request can not be empty"}
 
         val reqId = UUID.randomUUID().toString();
 
@@ -112,8 +113,8 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
 
 
         withTimeout
-            .onErrorResume { Mono.just(InferenceResponse("", null, true, it.message)) }
-            .reduce { s: InferenceResponse, s1: InferenceResponse -> InferenceResponse(s.respPartial + s1.respPartial, s1.respFull ?: s.respFull, s1.eos, s1.error) }
+            .onErrorResume { Mono.just(InferenceResponse2("", null, true, it.message)) }
+            .reduce { s: InferenceResponse2, s1: InferenceResponse2 -> InferenceResponse2(s.respPartial + s1.respPartial, s1.respFull ?: s.respFull, s1.eos, s1.error) }
             .flatMap {
                 mono {
                     if (it.error != null)
@@ -144,7 +145,12 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
             var value = resp.value().respPartial;
             if (value == null) value = resp.value().respFull;
 
-            if (value != null) sink.next(resp.value());
+            if (value != null) sink.next(InferenceResponse2(
+                resp.value().respPartial,
+                resp.value().respFull,
+                resp.value().eos,
+                resp.value().error
+            ));
             else sink.error(InferenceServerResponseException(req.req, req.reqId, resp))
             if (resp.value().eos) {
                 sink.complete()
