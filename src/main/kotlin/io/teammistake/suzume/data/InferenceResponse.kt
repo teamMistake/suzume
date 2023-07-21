@@ -38,7 +38,7 @@ data class APIResponseHeader(
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes(
     JsonSubTypes.Type(name="header", value=APIResponseHeader::class),
-    JsonSubTypes.Type(name="response", value=InferenceResponse::class),
+    JsonSubTypes.Type(name="response", value=InferenceResponse2::class),
     JsonSubTypes.Type(name="error", value=APIError::class)
 )
 open class SuzumeResponse;
