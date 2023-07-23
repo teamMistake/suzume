@@ -7,6 +7,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG
 import org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG
 import org.apache.kafka.clients.producer.ProducerConfig.*
+import org.apache.kafka.clients.producer.RoundRobinPartitioner
 import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.common.config.SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG
@@ -51,6 +52,7 @@ class KafkaConfiguration {
             VALUE_SERIALIZER_CLASS_CONFIG to JsonSerializer::class.java,
             SaslConfigs.SASL_MECHANISM to "SCRAM-SHA-512",
             CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to "SASL_PLAINTEXT",
+            PARTITIONER_CLASS_CONFIG to RoundRobinPartitioner::class.java.name,
             SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG to "",
             SaslConfigs.SASL_JAAS_CONFIG to "${ScramLoginModule::class.java.name} required username=\"${username}\" password=\"${password}\";"
         ).let(::DefaultKafkaProducerFactory)
