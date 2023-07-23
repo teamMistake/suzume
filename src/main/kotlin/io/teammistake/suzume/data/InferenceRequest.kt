@@ -12,6 +12,7 @@ data class InferenceRequest(
     val stream: Boolean,
     val maxToken: Int,
     val temperature: Double,
+    var timestamp: String,
     val topK: Int
 );
 

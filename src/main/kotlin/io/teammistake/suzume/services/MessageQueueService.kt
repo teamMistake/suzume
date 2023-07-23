@@ -125,7 +125,7 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
             ProducerRecord<String, InferenceRequest>(
                 producerTopic,
                 null,
-                InferenceRequest(req.req, req.context, req.stream, req.maxToken, req.temperature, req.topK)
+                InferenceRequest(req.req, req.context, req.stream, req.maxToken, req.temperature, System.currentTimeMillis().toULong().toString(), req.topK)
             ).apply {
                 headers().add("target_model", req.model.toByteArray(Charset.defaultCharset()))
                 headers().add("req_id", reqId.toByteArray(Charset.defaultCharset()))
