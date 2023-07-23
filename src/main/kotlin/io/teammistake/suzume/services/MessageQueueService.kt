@@ -1,12 +1,13 @@
 package io.teammistake.suzume.services
 
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Tag
+import io.micrometer.core.instrument.Timer
 import io.teammistake.suzume.data.*
 import io.teammistake.suzume.exception.InferenceServerResponseException
 import io.teammistake.suzume.exception.RequestTimeoutException
-import io.teammistake.suzume.repository.AIGeneration
-import io.teammistake.suzume.repository.AIGenerationRepository
+import jakarta.annotation.PostConstruct
 import kotlinx.coroutines.future.await
-import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -26,7 +27,6 @@ import reactor.core.publisher.FluxSink
 import reactor.core.publisher.Mono
 import java.nio.charset.Charset
 import java.time.Duration
-import java.time.Instant
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeoutException
@@ -56,12 +56,44 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
         val req: APIInferenceRequest,
         val reqId: String,
         val sink: FluxSink<InferenceResponse2>,
-        @Volatile var received: Boolean = false
+        @Volatile var received: Boolean = false,
+        val timer: Timer.Sample
     );
 
     @Autowired lateinit var storageService: StorageService;
 
     @Autowired lateinit var kafkaTemplate: KafkaTemplate<String, InferenceRequest>;
+
+
+    @Autowired lateinit var meterRegistry: MeterRegistry
+
+
+    @PostConstruct
+    fun registerConcurrent() {
+        meterRegistry.gauge("suzume_concurrent", this) {t -> t.correlationMap.size.toDouble()}
+    }
+    val firstResponseSuccess by lazy {
+        Timer.builder("suzume_stream_first")
+            .tag("type", "success")
+            .publishPercentiles(0.3, 0.5, 0.95)
+            .publishPercentileHistogram()
+            .register(meterRegistry)
+    }
+    val firstResponseTimeout by lazy {
+        Timer.builder("suzume_stream_first")
+            .tag("type", "timeout")
+            .publishPercentiles(0.3, 0.5, 0.95)
+            .publishPercentileHistogram()
+            .register(meterRegistry)
+    }
+    val endResponseSuccess  by lazy {
+        Timer.builder("suzume_stream_end")
+            .tag("type", "success")
+            .publishPercentiles(0.3, 0.5, 0.95)
+            .publishPercentileHistogram()
+            .register(meterRegistry)
+    }
+
     suspend fun request(req: APIInferenceRequest, uid: String?): Pair<Flux<InferenceResponse2>, APIResponseHeader> {
         require(req.maxToken > 0) {"Max token must be posistive: ${req.maxToken}"}
         require( 0 < req.temperature && req.temperature <= 1) {"Temperature must be in (0, 1]"}
@@ -83,7 +115,9 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
             correlationMap[reqId] = Request(
                 req,
                 reqId,
-                it
+                it,
+                false,
+                Timer.start(meterRegistry)
             );
         };
 
@@ -102,6 +136,7 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
             .timeout(Mono.just(0L).delayElement(Duration.ofMillis(timeout.toLong())))
             .doOnError {
                 if (it is TimeoutException) {
+                    correlationMap[reqId]?.timer?.stop(firstResponseTimeout)
                     correlationMap.remove(reqId)
                 }
             }
@@ -139,6 +174,9 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
         val reqId = resp.headers().lastHeader("req_id").value().toString(Charset.defaultCharset())
         val req = correlationMap[reqId];
         if (req != null) {
+            if (!req.received) {
+                req.timer.stop(firstResponseSuccess)
+            }
             req.received = true;
             val sink = req.sink;
 
@@ -155,6 +193,7 @@ class MessageQueueService: MessageListener<String, InferenceResponse> {
             if (resp.value().eos) {
                 sink.complete()
                 correlationMap.remove(reqId)
+                req.timer.stop(endResponseSuccess)
             }
         }
     }

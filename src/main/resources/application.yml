@@ -4,13 +4,13 @@ spring:
     name: suzume
   lifecycle:
     timeout-per-shutdown-phase: 60s
+server:
+  shutdown: graceful
 
 info:
   application:
     name: Suzume
 
-server:
-  shutdown: graceful
 
 management:
   info:
